@@ -41,6 +41,8 @@ from collections import namedtuple
 from xml.etree.ElementTree import parse, Element
 from utils.slice import fixed_len_slice_duplicated_pad
 from typing import List
+import tensorflow as tf
+from tfhelper.features import *
 
 
 class AnnoMeta(namedtuple('Annometa', ['folder', 'filename', 'size'])):
@@ -141,6 +143,20 @@ class AnnoStream(namedtuple('AnnoStream', ['meta', 'length', 'filenames', 'bndbo
     itv = max(self.length // n, 0)  # interval
     ss = map(lambda x: itv * x, range(0, n))  # starts
     return [self.substream(s, l) for s in ss]
+
+  def as_sequence_example(self):
+    """Convert to tf.train.SequenceExample"""
+    return tf.train.SequenceExample(
+      context=tf.train.Features(feature={
+        'folder': feature_bytes(self.meta.folder),
+        'size': feature_int64(self.meta.size),
+        'length': feature_int64(self.length)
+      }),
+      feature_lists=tf.train.FeatureLists(feature_list={
+        'filenames': feature_list_bytes(self.filenames),
+        'bndboxes': feature_list_int64(self.bndboxes)
+      })
+    )
 
 
 class AnnoScene(namedtuple('AnnoScene', ['meta', 'num_object', 'bndboxes', 'classes'])):

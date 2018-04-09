@@ -39,6 +39,8 @@
 """
 from collections import namedtuple
 from xml.etree.ElementTree import parse, Element
+from utils.slice import fixed_len_slice_duplicated_pad
+from typing import List
 
 
 class AnnoMeta(namedtuple('Annometa', ['folder', 'filename', 'size'])):
@@ -116,7 +118,29 @@ class AnnoStream(namedtuple('AnnoStream', ['meta', 'length', 'filenames', 'bndbo
     filenames (List[bytes]): a list of filenames that contain the object
     bndboxes (List[4 * int64]): a list of 4 int64 representing the object bounding boxes
   """
-  pass
+  @classmethod
+  def from_meta_and_objs(cls, meta: AnnoMeta, objs: List[AnnoObj]):
+    return super(AnnoStream, cls).__new__(cls,
+                                          meta=meta,
+                                          length=len(objs),
+                                          filenames=[o.filename for o in objs],
+                                          bndboxes=[o.bndbox for o in objs])
+
+  def substream(self, s: int, l: int):
+    """Extract a `l`-len substream starts at `s`"""
+    filenames = fixed_len_slice_duplicated_pad(self.filenames, s, l)
+    bndboxes = fixed_len_slice_duplicated_pad(self.bndboxes, s, l)
+    return super(AnnoStream, self).__new__(self.__class__,
+                                           meta=self.meta,
+                                           length=l,
+                                           filenames=filenames,
+                                           bndboxes=bndboxes)
+
+  def split(self, n: int, l: int):
+    """Split into `n` substreams len `l`"""
+    itv = max(self.length // n, 0)  # interval
+    ss = map(lambda x: itv * x, range(0, n))  # starts
+    return [self.substream(s, l) for s in ss]
 
 
 class AnnoScene(namedtuple('AnnoScene', ['meta', 'num_object', 'bndboxes', 'classes'])):

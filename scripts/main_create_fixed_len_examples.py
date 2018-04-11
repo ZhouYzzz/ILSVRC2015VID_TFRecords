@@ -9,8 +9,7 @@ import tempfile
 import tensorflow as tf
 from typing import List
 
-from utils.stream import StreamSeparator
-from dataset.annotations import AnnoMeta, AnnoObj, AnnoStream, parse_xml
+from dataset.annotations import AnnoStream, parse_annotation_folder_to_streams
 from dataset.dataset import ILSVRC2015VID
 
 
@@ -26,19 +25,11 @@ parser.add_argument('--max_num_examples', default=16, type=int, help='maximum nu
 FLAGS = parser.parse_args([])
 
 
-def parse_annotation_folder(folder: str) -> List[AnnoStream]:
+def get_fixed_len_streams_from_annotation_folder(folder: str) -> List[AnnoStream]:
   def split_stream(s: AnnoStream):
     return s.split(n=max(min(s.length // FLAGS.length + 1, FLAGS.max_num_examples), FLAGS.min_num_examples),
                    l=FLAGS.length)
-  if not os.path.exists(folder):
-    raise NotADirectoryError(folder)
-  num_xml_files = len([f for f in os.listdir(folder) if f.endswith('.xml')])
-  stream_separator = StreamSeparator(dtype=AnnoObj)
-  for i in range(num_xml_files):
-    meta, objs = parse_xml(os.path.join(folder, '{:06d}.xml'.format(i)))
-    stream_separator.update({o.trackid: o for o in objs})
-  streams = stream_separator.close()
-  anno_streams = [AnnoStream.from_meta_and_objs(meta=meta, objs=s) for s in streams]
+  anno_streams = parse_annotation_folder_to_streams(folder)
   splitted_streams = list()
   [splitted_streams.extend(split_stream(s)) for s in anno_streams]
   return splitted_streams
@@ -60,7 +51,7 @@ def main():
   t = tqdm.tqdm(sids)  # get iterator
   num_streams = 0
   for sid in t:
-    streams = parse_annotation_folder(os.path.join(dataset.annotation_dir(FLAGS.phase, sid)))
+    streams = get_fixed_len_streams_from_annotation_folder(os.path.join(dataset.annotation_dir(FLAGS.phase, sid)))
     num_streams += len(streams)
     write_streams(streams, output_dir=FLAGS.output_dir)
     t.set_description('Processing {sid}, total {num_streams} streams'.format(sid=sid, num_streams=num_streams))

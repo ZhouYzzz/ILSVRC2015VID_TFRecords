@@ -40,6 +40,7 @@
 from collections import namedtuple
 from xml.etree.ElementTree import parse, Element
 from utils.slice import fixed_len_slice_duplicated_pad
+from utils.stream import StreamSeparator
 from typing import List
 import tensorflow as tf
 from tfhelper.features import *
@@ -157,6 +158,26 @@ class AnnoStream(namedtuple('AnnoStream', ['meta', 'length', 'filenames', 'bndbo
         'bndboxes': feature_list_int64(self.bndboxes)
       })
     )
+
+
+def parse_annotation_folder_to_streams(folder: str) -> List[AnnoStream]:
+  """parse_annotation_folder_to_streams
+  Read the whole annotation folder, split the sequence into streams, 
+  and return all the streams in the format of AnnoStream
+
+  return:
+    List of AnnoStream
+  """
+  if not os.path.exists(folder):
+    raise NotADirectoryError(folder)
+  num_xml_files = len([f for f in os.listdir(folder) if f.endswith('.xml')])
+  stream_separator = StreamSeparator(dtype=AnnoObj)
+  for i in range(num_xml_files):
+    meta, objs = parse_xml(os.path.join(folder, '{:06d}.xml'.format(i)))
+    stream_separator.update({o.trackid: o for o in objs})
+  streams = stream_separator.close()
+  anno_streams = [AnnoStream.from_meta_and_objs(meta=meta, objs=s) for s in streams]
+  return anno_streams
 
 
 class AnnoScene(namedtuple('AnnoScene', ['meta', 'num_object', 'bndboxes', 'classes'])):

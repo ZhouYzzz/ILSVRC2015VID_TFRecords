@@ -12,7 +12,7 @@ This repository is used to generate sequencial TFRecords files from raw ILSVRC20
 
 run `pip install -r requirements.txt` to install required packages.
 
-go to [ILSVRC2015](image-net.org/challenges/LSVRC/2015/) for more information and download the dataset.
+go to [ILSVRC2015](https://image-net.org/challenges/LSVRC/2015/) for more information and download the dataset.
 
 ### Create fixed length TFSequenceExample
 

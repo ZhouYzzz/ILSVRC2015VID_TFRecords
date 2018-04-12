@@ -37,6 +37,7 @@
 </annotation>
 ```
 """
+import os
 from collections import namedtuple
 from xml.etree.ElementTree import parse, Element
 from utils.slice import fixed_len_slice_duplicated_pad

@@ -22,7 +22,8 @@ parser.add_argument('--min_num_examples', default=2, type=int, help='minimum num
 parser.add_argument('--max_num_examples', default=16, type=int, help='maximum number of examples from single stream')
 
 
-FLAGS = parser.parse_args([])
+FLAGS = parser.parse_args()
+print(FLAGS)
 
 
 def get_fixed_len_streams_from_annotation_folder(folder: str) -> List[AnnoStream]:
